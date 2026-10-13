@@ -9,7 +9,7 @@ on:
     inputs:
       channel:
         description: Snap Store channel to release to (empty = build only)
-        default: edge
+        default: candidate
         type: string
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "value=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "push" ]; then
-            echo "value=edge" >> "$GITHUB_OUTPUT"
+            echo "value=candidate" >> "$GITHUB_OUTPUT"
           else
             echo "value=" >> "$GITHUB_OUTPUT"
           fi
@@ -48,7 +48,7 @@ jobs:
       - uses: snapcore/action-publish@v1
         if: steps.channel.outputs.value != ''
         env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
         with:
           snap: ${{ steps.build.outputs.snap }}
           release: ${{ steps.channel.outputs.value }}
