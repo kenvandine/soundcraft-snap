@@ -1,0 +1,75 @@
+name: soundcraft
+title: SoundCraft
+base: core24
+version: '0.6.1'
+summary: Record, edit and mix audio and MIDI
+description: |
+  SoundCraft is an open-source, native digital audio workstation: record, edit and mix multitrack audio and MIDI in Edit and Mix windows that work the way studio engineers expect.
+
+  SoundCraft is part of the open-source ArtCraft "Crafting Apps": a native Rust
+  application that runs locally on your own files and can be driven from a CLI,
+  a JSON control channel or an MCP server.
+
+  This snap repackages the official upstream Linux release. The headless
+  command line tool is available as soundcraft.cli.
+license: MIT OR Apache-2.0
+website: https://getartcraft.com/apps/soundcraft
+source-code: https://github.com/storytold/soundcraft
+issues: https://github.com/storytold/soundcraft/issues
+contact: https://github.com/kenvandine/soundcraft-snap/issues
+icon: snap/gui/soundcraft.png
+grade: stable
+confinement: strict
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  soundcraft:
+    command: bin/soundcraft
+    extensions: [gnome]
+    common-id: ai.storyteller.soundcraft
+    plugs:
+      - audio-playback
+      - audio-record
+      - home
+      - network
+      - network-bind
+      - opengl
+      - removable-media
+  cli:
+    command: bin/soundcraft-cli
+    extensions: [gnome]
+    plugs:
+      - home
+      - network
+      - network-bind
+      - removable-media
+
+parts:
+  soundcraft:
+    plugin: nil
+    build-packages:
+      - ca-certificates
+      - curl
+    stage-packages:
+      - libvulkan1
+      - libxkbcommon-x11-0
+    override-pull: |
+      set -eu
+      case "$CRAFT_ARCH_BUILD_FOR" in
+        amd64) arch=x86_64 ;;
+        arm64) arch=aarch64 ;;
+        *) echo "unsupported architecture: $CRAFT_ARCH_BUILD_FOR" >&2; exit 1 ;;
+      esac
+      name="soundcraft-${CRAFT_PROJECT_VERSION}-linux-${arch}"
+      url="https://github.com/storytold/soundcraft/releases/download/v${CRAFT_PROJECT_VERSION}"
+      curl -fsSL --retry 3 -o "${name}.tar.gz" "${url}/${name}.tar.gz"
+      curl -fsSL --retry 3 -o SHA256SUMS.txt "${url}/SHA256SUMS.txt"
+      grep -E "[ *]${name}\.tar\.gz\$" SHA256SUMS.txt | sha256sum -c -
+      tar xzf "${name}.tar.gz" --strip-components=1
+      rm -f "${name}.tar.gz" SHA256SUMS.txt
+    override-build: |
+      set -eu
+      cp -a bin share "$CRAFT_PART_INSTALL/"

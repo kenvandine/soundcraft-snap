@@ -1,0 +1,61 @@
+name: Check upstream release
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  UPSTREAM: storytold/soundcraft
+  # Store channel a freshly bumped version is released to.
+  BUMP_CHANNEL: candidate
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare versions
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName)
+          latest=${latest#v}
+          current=$(sed -n "s/^version: '\(.*\)'$/\1/p" snap/snapcraft.yaml)
+          echo "upstream=$latest current=$current"
+          newest=$(printf '%s\n%s\n' "$latest" "$current" | sort -V | tail -n1)
+          if [ "$latest" != "$current" ] && [ "$newest" = "$latest" ]; then
+            echo "new=true" >> "$GITHUB_OUTPUT"
+            echo "version=$latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify the release has Linux tarballs
+        if: steps.v.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=${{ steps.v.outputs.version }}
+          assets=$(gh release view "v$v" --repo "$UPSTREAM" --json assets -q '.assets[].name')
+          for arch in x86_64 aarch64; do
+            echo "$assets" | grep -qx "soundcraft-$v-linux-$arch.tar.gz"
+          done
+          echo "$assets" | grep -qx SHA256SUMS.txt
+
+      - name: Bump version and trigger build
+        if: steps.v.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed -i "s/^version: '.*'$/version: '${{ steps.v.outputs.version }}'/" snap/snapcraft.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update to upstream ${{ steps.v.outputs.version }}"
+          git push
+          # Pushes made with GITHUB_TOKEN don't trigger workflows, so dispatch explicitly.
+          gh workflow run build.yml --ref main -f channel="$BUMP_CHANNEL"

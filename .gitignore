@@ -1,0 +1,6 @@
+*.snap
+*_amd64.txt
+*.zip
+parts/
+stage/
+prime/
