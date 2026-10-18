@@ -1,7 +1,7 @@
 name: soundcraft
 title: SoundCraft
 base: core24
-version: '0.7.0'
+version: '0.8.0'
 summary: Record, edit and mix audio and MIDI
 description: |
   SoundCraft is an open-source, native digital audio workstation: record, edit and mix multitrack audio and MIDI in Edit and Mix windows that work the way studio engineers expect.
