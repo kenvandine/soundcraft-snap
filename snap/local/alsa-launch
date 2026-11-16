@@ -1,0 +1,27 @@
+#!/bin/sh
+# Route ALSA through PulseAudio (also served by PipeWire) since the snap
+# has no direct access to sound cards. The config is generated at runtime
+# because plugin paths must be absolute and depend on the architecture.
+triplet="$(uname -m)-linux-gnu"
+plugins="$SNAP/usr/lib/$triplet/alsa-lib"
+conf="$SNAP_USER_COMMON/asound.conf"
+
+mkdir -p "$SNAP_USER_COMMON"
+cat > "$conf" <<CONF
+pcm_type.pulse {
+    lib "$plugins/libasound_module_pcm_pulse.so"
+}
+ctl_type.pulse {
+    lib "$plugins/libasound_module_ctl_pulse.so"
+}
+pcm.!default {
+    type pulse
+    hint.description "Default (PulseAudio)"
+}
+ctl.!default {
+    type pulse
+}
+CONF
+
+export ALSA_CONFIG_PATH="$conf"
+exec "$@"
