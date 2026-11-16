@@ -59,6 +59,9 @@ parts:
       - libasound2-plugins
       - libvulkan1
       - libxkbcommon-x11-0
+      - wl-clipboard
+      - xclip
+      - zenity
     override-pull: |
       set -eu
       case "$CRAFT_ARCH_BUILD_FOR" in

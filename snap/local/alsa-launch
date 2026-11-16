@@ -24,4 +24,31 @@ ctl.!default {
 CONF
 
 export ALSA_CONFIG_PATH="$conf"
+
+# Warn at startup when the audio-record interface is not connected.
+# snapctl prints nothing and exits 1 when the plug is simply disconnected;
+# any output means snapctl itself failed, so don't nag in that case.
+cmd="sudo snap connect $SNAP_INSTANCE_NAME:audio-record"
+if [ -n "$DISPLAY$WAYLAND_DISPLAY" ]; then
+    err="$(snapctl is-connected audio-record 2>&1)"
+    if [ $? -ne 0 ] && [ -z "$err" ]; then
+        while :; do
+            out="$(zenity --question --title="Recording not enabled" \
+                --width=480 --icon-name=audio-input-microphone \
+                --text="SoundCraft cannot record audio because the <b>audio-record</b> interface is not connected.\n\nTo enable recording, run this command in a terminal, then restart SoundCraft:\n\n<tt>$cmd</tt>" \
+                --ok-label="Continue" --cancel-label="Close" \
+                --extra-button="Copy" 2>/dev/null)"
+            if [ "$out" = "Copy" ]; then
+                if [ -n "$WAYLAND_DISPLAY" ] && command -v wl-copy >/dev/null; then
+                    printf %s "$cmd" | wl-copy
+                elif command -v xclip >/dev/null; then
+                    printf %s "$cmd" | xclip -selection clipboard
+                fi
+            else
+                break
+            fi
+        done
+    fi
+fi
+
 exec "$@"
