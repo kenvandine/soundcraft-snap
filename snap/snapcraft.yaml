@@ -1,6 +1,6 @@
 name: soundcraft
 title: SoundCraft
-base: core24
+base: core26
 version: '0.20.1'
 summary: Record, edit and mix audio and MIDI
 description: |
